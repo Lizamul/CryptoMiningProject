@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Monitoring Patterned Dataset Indodax</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            margin: 0;
+            padding: 20px;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #334155;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 22px;
+            color: #38bdf8;
+        }
+        .status-bar {
+            font-size: 14px;
+            color: #94a3b8;
+        }
+        .status-badge {
+            background-color: #1e293b;
+            padding: 6px 12px;
+            border-radius: 6px;
+            border: 1px solid #475569;
+        }
+        .table-container {
+            overflow-x: auto;
+            background: #1e293b;
+            border-radius: 8px;
+            border: 1px solid #334155;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            text-align: right;
+        }
+        th, td {
+            padding: 10px 14px;
+            border-bottom: 1px solid #334155;
+        }
+        th {
+            background-color: #0f172a;
+            color: #94a3b8;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        th:first-child, td:first-child {
+            text-align: left;
+            font-weight: bold;
+            color: #f1f5f9;
+        }
+        tr:hover {
+            background-color: #273549;
+        }
+        /* Penanda Kondisi Crash & Moon */
+        .badge-moon {
+            background-color: rgba(34, 197, 94, 0.2);
+            color: #4ade80;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .badge-crash {
+            background-color: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .countdown {
+            color: #f59e0b;
+            font-weight: bold;
+        }
+        .toolbar {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 12px;
+        }
+        #pair-search {
+            width: min(320px, 100%);
+            box-sizing: border-box;
+            padding: 9px 12px;
+            color: #f8fafc;
+            background: #1e293b;
+            border: 1px solid #475569;
+            border-radius: 6px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div>
+            <h1>Real-Time Patterned Dataset Crypto</h1>
+            <div style="font-size: 12px; color: #64748b; margin-top: 4px;">Formula: R, TR, LR, PTR, PLR Matrix Engine</div>
+        </div>
+        <div class="status-bar">
+            <span class="status-badge">Auto Refresh: <span id="timer" class="countdown">30</span>s</span>
+            <span class="status-badge" id="last-update">Update: Menunggu...</span>
+        </div>
+    </div>
+
+    <div class="toolbar">
+        <input id="pair-search" type="search" placeholder="Cari PAIR, contoh: btc_idr" aria-label="Cari pair">
+    </div>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Pair</th>
+                    <th>High (H)</th>
+                    <th>Low (L)</th>
+                    <th>Last (C)</th>
+                    <th>Range (R)</th>
+                    <th>TR (H-C)</th>
+                    <th>LR (C-L)</th>
+                    <th>PTR (%)</th>
+                    <th>PLR (%)</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody id="crypto-table-body">
+                <tr>
+                    <td colspan="10" style="text-align: center; color: #94a3b8; padding: 20px;">Memuat data...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        const refreshSeconds = 30;
+        let countdown = refreshSeconds;
+        let isLoading = false;
+        let latestData = [];
+
+        function formatNumber(num) {
+            return Number(num).toLocaleString('id-ID', { maximumFractionDigits: 4 });
+        }
+
+        function renderRows() {
+            const query = document.getElementById('pair-search').value.trim().toLowerCase();
+            const rows = latestData.filter(item => item.pair.toLowerCase().includes(query));
+            const tbody = document.getElementById('crypto-table-body');
+
+            if (rows.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; color: #94a3b8; padding: 20px;">PAIR tidak ditemukan.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = rows.map(item => {
+                const ptr = parseFloat(item.ptr);
+                const plr = parseFloat(item.plr);
+                let statusTag = '-';
+                if (plr === 100 && ptr === 0) statusTag = '<span class="badge-moon">MOON</span>';
+                if (ptr === 100 && plr === 0) statusTag = '<span class="badge-crash">CRASH</span>';
+
+                return `
+                    <tr>
+                        <td>${item.pair.toUpperCase()}</td>
+                        <td>${formatNumber(item.high)}</td>
+                        <td>${formatNumber(item.low)}</td>
+                        <td>${formatNumber(item.last)}</td>
+                        <td>${formatNumber(item.r)}</td>
+                        <td>${formatNumber(item.tr)}</td>
+                        <td>${formatNumber(item.lr)}</td>
+                        <td>${ptr.toFixed(2)}%</td>
+                        <td>${plr.toFixed(2)}%</td>
+                        <td style="text-align:center;">${statusTag}</td>
+                    </tr>`;
+            }).join('');
+        }
+
+        async function loadCryptoData() {
+            if (isLoading) return;
+            isLoading = true;
+
+            try {
+                const response = await fetch(`get_data.php?_=${Date.now()}`, {
+                    cache: 'no-store',
+                    headers: { 'Accept': 'application/json' }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const result = await response.json();
+                const tbody = document.getElementById('crypto-table-body');
+
+                if (result.status === 'success' && result.data.length > 0) {
+                    latestData = result.data;
+                    renderRows();
+                    document.getElementById('last-update').innerText = `Batch: ${result.created_at} (${result.count} Koin)`;
+                } else if (result.status === 'empty') {
+                    tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; color: #f59e0b; padding: 20px;">Database belum berisi data.</td></tr>';
+                    document.getElementById('last-update').innerText = 'Update: Belum ada data';
+                } else {
+                    throw new Error(result.message || 'Respons endpoint tidak valid');
+                }
+            } catch (error) {
+                console.error("Gagal mengambil data:", error);
+                document.getElementById('crypto-table-body').innerHTML = `<tr><td colspan="10" style="text-align: center; color: #f87171; padding: 20px;">Gagal mengambil data: ${error.message}. Buka halaman melalui http://localhost, bukan file://.</td></tr>`;
+                document.getElementById('last-update').innerText = 'Update: Gagal';
+            } finally {
+                isLoading = false;
+                countdown = refreshSeconds;
+            }
+        }
+
+        document.getElementById('pair-search').addEventListener('input', renderRows);
+
+        // Interval untuk hitung mundur detik & fetch data
+        setInterval(() => {
+            countdown--;
+            document.getElementById('timer').innerText = countdown;
+
+            if (countdown <= 0) {
+                loadCryptoData();
+            }
+        }, 1000);
+
+        // Ambil data pertama kali saat halaman dimuat
+        loadCryptoData();
+    </script>
+</body>
+</html>
